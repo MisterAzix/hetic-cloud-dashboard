@@ -1,5 +1,42 @@
 import Head from 'next/head';
-import { Table, TableContainer, Thead, Tbody, Tr, Th, Td, Box, Card } from '@chakra-ui/react';
+import {
+  Table,
+  TableContainer,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Grid,
+  Card,
+  Flex,
+  Button,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  Textarea,
+  Input,
+  Stack,
+  FormControl,
+  FormLabel,
+  Code,
+  IconButton,
+  useClipboard,
+  Tooltip,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  AlertTitle,
+  FormErrorMessage,
+} from '@chakra-ui/react';
+import { AddIcon, CopyIcon, SmallAddIcon } from '@chakra-ui/icons';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
 interface IUsers {
   name: string;
@@ -8,6 +45,32 @@ interface IUsers {
 }
 
 export default function Home({ users }: { users: IUsers[] }) {
+  const { handleSubmit, control } = useForm();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { onCopy, value, setValue, hasCopied } = useClipboard('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    value && onCopy();
+  }, [value]);
+
+  const onSubmit = async (data: any) => {
+    setError(null);
+    const res = await fetch(`${process.env.apiRoot}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      return setError(json.message);
+    }
+    onClose();
+  };
+
   return (
     <>
       <Head>
@@ -16,13 +79,19 @@ export default function Home({ users }: { users: IUsers[] }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Box p={4}>
+      <Grid p={4} gap={4}>
+        <Flex justifyContent={'right'}>
+          <Button onClick={onOpen} colorScheme={'teal'} rightIcon={<SmallAddIcon />}>
+            Create user
+          </Button>
+        </Flex>
         <Card>
           <TableContainer>
             <Table>
               <Thead>
                 <Tr>
                   <Th>Name</Th>
+                  <Th>SSH connection</Th>
                   <Th>Home</Th>
                   <Th>Size</Th>
                 </Tr>
@@ -31,6 +100,27 @@ export default function Home({ users }: { users: IUsers[] }) {
                 {users.map((user, key) => (
                   <Tr key={key}>
                     <Td>{user.name}</Td>
+                    <Td>
+                      <Flex gap={2}>
+                        <Code>
+                          ssh {user.name}@{process.env.serverRoot}
+                        </Code>
+                        <Tooltip
+                          label={hasCopied ? 'Copied!' : 'Copy'}
+                          placement={'top'}
+                          closeOnClick={false}
+                        >
+                          <IconButton
+                            onClick={() => {
+                              setValue(`ssh ${user.name}@${process.env.serverRoot}`);
+                            }}
+                            aria-label={'Copy'}
+                            icon={<CopyIcon />}
+                            size={'xs'}
+                          />
+                        </Tooltip>
+                      </Flex>
+                    </Td>
                     <Td>{user.home}</Td>
                     <Td>{user.size}</Td>
                   </Tr>
@@ -39,7 +129,71 @@ export default function Home({ users }: { users: IUsers[] }) {
             </Table>
           </TableContainer>
         </Card>
-      </Box>
+      </Grid>
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <ModalHeader>User Informations</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Stack gap={2}>
+                <Alert status="error" display={error ? 'block' : 'none'}>
+                  <Flex>
+                    <AlertIcon />
+                    <AlertTitle>{error}</AlertTitle>
+                  </Flex>
+                </Alert>
+                <Controller
+                  name="username"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field: { onChange }, fieldState: { error } }) => (
+                    <>
+                      <FormControl isInvalid={!!error}>
+                        <FormLabel>Username</FormLabel>
+                        <Input onChange={onChange} placeholder="john" />
+                        {error?.type === 'required' && (
+                          <FormErrorMessage>Username is required!</FormErrorMessage>
+                        )}
+                      </FormControl>
+                    </>
+                  )}
+                />
+                <Controller
+                  name="id_rsa"
+                  control={control}
+                  rules={{
+                    required: true,
+                    pattern: /ssh-rsa AAAA[0-9A-Za-z+/]+[=]{0,3} ([^@]+@[^@]+)/,
+                  }}
+                  render={({ field: { onChange }, fieldState: { error } }) => (
+                    <>
+                      <FormControl isInvalid={!!error}>
+                        <FormLabel>SSH Key</FormLabel>
+                        <Textarea onClick={onChange} placeholder="..." />
+                        {error?.type === 'required' && (
+                          <FormErrorMessage>SSH Key is required!</FormErrorMessage>
+                        )}
+                        {error?.type === 'pattern' && (
+                          <FormErrorMessage>SSH Key must be valid!</FormErrorMessage>
+                        )}
+                      </FormControl>
+                    </>
+                  )}
+                />
+              </Stack>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button type={'submit'} colorScheme={'teal'}>
+                Create user
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
