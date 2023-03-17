@@ -44,7 +44,7 @@ interface IUsers {
   size: string;
 }
 
-export default function Home({ users }: { users: IUsers[] }) {
+export default function Users({ users }: { users: IUsers[] }) {
   const { handleSubmit, control } = useForm();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { onCopy, value, setValue, hasCopied } = useClipboard('');

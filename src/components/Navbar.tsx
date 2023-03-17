@@ -10,8 +10,8 @@ export default function Navbar() {
         <Link href={'/users'} fontSize={'xl'} fontWeight={600}>
           Users
         </Link>
-        <Link href={'/copyrights'} fontSize={'xl'} fontWeight={600}>
-          Copyrights
+        <Link href={'/databases'} fontSize={'xl'} fontWeight={600}>
+          Databases
         </Link>
       </Flex>
     </Box>

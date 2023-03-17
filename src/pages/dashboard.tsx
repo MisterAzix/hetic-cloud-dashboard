@@ -12,7 +12,7 @@ import {
   Grid,
 } from '@chakra-ui/react';
 
-export default function Home({
+export default function Dashboard({
   cpuInfo,
   memoryInfo,
 }: {
